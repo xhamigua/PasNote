@@ -1,15 +1,16 @@
-//{$INCLUDE '..\TypeDef.INC'}
-//{$IFDEF Pdll}
-//library PasCore;
-//{$ELSE}
+{$INCLUDE '..\TypeDef.INC'}
+{$IFNDEF Pdll}
 program PasCore;
-//{$ENDIF}
+{$ELSE}
+library PasCore;
+{$ENDIF}
 
 uses
   SysUtils,
   Classes,
   Forms,
-  Uimain in '..\FRM\Uimain.pas' {Form1},
+  Graphics,
+  Uimain in '..\FRM\Uimain.pas' {FormPas},
   UFile in '..\SRC\UFile.pas',
   UCommon in '..\SRC\UCommon.pas';
 
@@ -17,6 +18,6 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormPas, FormPas);
   Application.Run;
 end.

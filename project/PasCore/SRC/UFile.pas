@@ -7,7 +7,7 @@
 unit UFile;
 interface
 uses
-  Windows, StrUtils, SysUtils, IniFiles, Classes, Types, ShellApi;
+  Windows, StrUtils, SysUtils, Forms, IniFiles, Classes, Types, ShellApi;
 
 type
   WStr= WideString;
@@ -57,6 +57,8 @@ function GetLastN(const tmp:WStr;n:Integer=1):WStr;cdecl;
 function GetNotAgoN(const tmp:WStr;n:Integer=1):WStr;cdecl;
 //去掉后面n个符号
 function GetNotLastN(const tmp:WStr;n:Integer=1):WStr;cdecl;
+//将(a,b,c,d)单个转为TStringList里
+function RegExprType(str:string):TStrings;cdecl;
 //返回值在0到1之间，0表示不相似，1表示完全相似。
 function StrSimilar(const Str1, Str2: pStr; ICase: Boolean=False): Double;cdecl;
 //Delphi转C++ char*
@@ -65,6 +67,20 @@ function StringToChar(const str:WStr):PAnsiChar;cdecl;
 function CharToString(const str:PAnsiChar):WStr;cdecl;
 //检查文件路径最后的\ // 是否加斜线 是否用双线
 function CheckPathOK(Tpath: pStr;Topen:Boolean=True;Ttwo:Boolean=False):pStr;cdecl;
+//删除对象
+function DelPathDir(const mpath:pStr):Boolean;cdecl;
+//删除包含tname的文件夹
+function DelPathDirEX(const mpath:pStr;tname:pStr='.svn'):TStrings;cdecl;
+//根据路径获得kname过滤的内容[0递归全部,1递归文件夹,2递归文件,3当前文件夹,4当前文件]
+function GetDirFiles(path:pStr;idtype:integer=0; kname:pStr=''):TStrings;cdecl;
+//全路径改名[idtype 0当前路径1不改扩展名]
+function ReFileName(const OldName,NewName,ty:pStr;idtype:Integer=0):pStr;cdecl;
+//释放资源 (dll中不能释放exe的资源)
+function ExtractRes(ResType, ResName, ResNewName: string): boolean;cdecl;
+
+
+
+
 
 
 implementation
@@ -356,6 +372,12 @@ begin
   Result:=Copy(tmp, 1, k-p);
 end;
 
+function RegExprType(str:string):TStrings;cdecl;
+begin
+  Result:=TStringList.Create;
+  ExtractStrings([','],[],{$IFDEF VER150}pchar(str){$ELSE}PWideChar(str){$ENDIF},Result);
+end;
+
 function DamerauLevenshteinDistance(const Str1, Str2: string): Integer;
 var
   LenStr1, LenStr2: Integer;
@@ -498,62 +520,326 @@ begin      //检查目录名后面是否有'\'
   }
 end;
 
+function DeleteFile(const FileName: pStr;kill:Boolean=False): Boolean;stdcall;
+begin
+  if kill then
+  begin
+    //先去掉属性
+//    FileSetAttr(PChar(FileName),0);
+    setFileAttributes(PChar(FileName),0);
+//    setFileAttributes(PChar(FileName),(not faSysFile));
+//    setFileAttributes(PChar(FileName),((not faReadOnly)and(not faSysFile)));
+  end;
+  {$IFDEF MSWINDOWS}
+    Result := Windows.DeleteFile(PChar(FileName));
+  {$ENDIF}
+  {$IFDEF LINUX}
+    Result := unlink(PChar(FileName)) <> -1;
+  {$ENDIF}
+end;
+
+function DelPathDir(const mpath:pStr):Boolean;cdecl;
+var
+  sr:TSearchRec;
+  sPath,sFile:pStr;
+begin
+  //检查目录名后面是否有'\'
+  if Copy(mpath,Length(mpath),1)<>'\' then
+    sPath:=mpath+'\'
+  else
+    sPath:=mpath;
+  //------------------------------------------------------------------
+  if FindFirst(sPath+'*.*',faAnyFile,sr)=0 then
+  begin
+    repeat
+      sFile:=Trim(sr.Name);
+      if sFile='.' then Continue;
+      if sFile='..' then Continue;
+      sFile:=sPath+sr.Name;
+      if(sr.Attr and faDirectory)<>0 then
+        DelPathDir(sFile)       //递归
+      else if(sr.Attr and faAnyFile)=sr.Attr then
+        DeleteFile(sFile);    //删除文件
+    until FindNext(sr)<>0;
+    FindClose(sr);
+  end;
+  RemoveDir(sPath);
+
+end;
+
+function DelPathDirEX(const mpath:pStr;tname:pStr='.svn'):TStrings;cdecl;
+var
+  fpath,s: pStr;
+  fs: TsearchRec;
+function loop():TStrings;
+begin
+  Result:=TStringList.Create;
+  if (fs.Name<>'.')and(fs.Name<>'..') then
+  if (fs.Attr and faDirectory)=faDirectory then
+  begin
+    if (tname='') or (fs.Name=tname) then
+    begin
+      Result.Add(mpath+'\'+fs.Name);
+      DelPathDir(mpath+'\'+fs.Name);
+    end else begin
+      Result.AddStrings(DelPathDirEX(mpath+'\'+fs.Name,mpath));
+    end;
+  end;
+end;
+begin
+  fpath:=mpath+'\*.*';
+  Result:=TStringList.Create;
+  if FindFirst(fpath,faAnyFile,fs)=0 then
+  begin
+    Result.AddStrings(loop());
+    while findnext(fs)=0 do
+    begin
+      Result.AddStrings(loop());
+    end;
+  end;
+  Findclose(fs);
+end;
+
+function GetDirFiles(path:pStr;idtype:integer=0; kname:pStr=''):TStrings;cdecl;
+var
+  fpath,s: pStr;
+  fs: TsearchRec;
+  icount,i,JPG: Integer;
+
+  function LoopD():TStrings;
+  begin
+    Result:=TStringList.Create;
+    if (fs.Name<>'.')and(fs.Name<>'..') then
+      if (fs.Attr and faDirectory)=faDirectory then
+        Result.AddStrings(GetDirFiles(path+'\'+fs.Name,2,kname))
+      else if RightStr(fs.Name,JPG)=kname then
+        begin
+          Result.Add(fs.Name);
+          //writeWorkLog(path+'\'+fs.Name);
+        end;
+  end;
+begin
+  case idtype of
+     0: begin      //搜索全递归
+          fpath:=CheckPathOK(path)+'*.*';
+          Result:=TStringList.Create;
+          if FindFirst(fpath,faAnyFile,fs)=0 then
+          begin
+            if (fs.Name<>'.')and(fs.Name<>'..') then
+            if (fs.Attr and faDirectory)=faDirectory then
+              Result.AddStrings( GetDirFiles(path+'\'+fs.Name,0,kname))
+            else
+              Result.add(fs.Name);//Result.add(strpas(strupper(pchar(fs.Name))) );
+            while findnext(fs)=0 do
+            begin
+              if (fs.Name<>'.')and(fs.Name<>'..') then
+              if (fs.Attr and faDirectory)=faDirectory then
+                Result.AddStrings( GetDirFiles(path+'\'+fs.Name,0,kname) )
+              else begin
+                Result.add(fs.Name);
+              end;
+            end;
+            Application.ProcessMessages;
+          end;
+          Findclose(fs); 
+        end;
+     1: begin      //搜索文件夹下的文件夹列表 递归文件夹
+          fpath:=path+'\*.*';
+          Result:=TStringList.Create;
+          if FindFirst(fpath,faAnyFile,fs)=0 then
+          begin
+            if (fs.Name<>'.')and(fs.Name<>'..') then
+            if (fs.Attr and faDirectory)=faDirectory then
+            begin
+              if (kname='') or (fs.Name=kname) then Result.Add(fs.Name);
+              Result.AddStrings(GetDirFiles(path+'\'+fs.Name,1,kname))
+            end;
+
+            while findnext(fs)=0 do
+            begin
+              if (fs.Name<>'.')and(fs.Name<>'..') then
+              if (fs.Attr and faDirectory)=faDirectory then
+              Begin
+                if (kname='') or (fs.Name=kname) then Result.Add(fs.Name);
+                Result.AddStrings( GetDirFiles(path+'\'+fs.Name,1,kname))
+              End;
+            end;
+          end;
+          Findclose(fs);
+        end;
+     2: begin
+          fpath:=CheckPathOK(path)+'*.*';          //fpath:=path+'\*.*';
+          JPG:=Length(kname);
+          Result:=TStringList.Create;
+          if FindFirst(fpath,faAnyFile,fs)=0 then
+          begin
+            Result.AddStrings(LoopD());
+            while findnext(fs)=0 do
+            begin
+              Result.AddStrings(LoopD());
+            end;
+            Application.ProcessMessages;
+          end;
+          Findclose(fs);
+        end;
+     3: begin     //搜索文件夹下的文件夹列表
+          fpath:=path+'\*.*';
+          Result:=TStringList.Create;
+          if FindFirst(fpath,faAnyFile,fs)=0 then
+          begin
+            if (fs.Name<>'.')and(fs.Name<>'..') then
+              if (fs.Attr and faDirectory)=faDirectory then
+                Result.Add(fs.Name);
+
+              while findnext(fs)=0 do
+              begin
+                if (fs.Name<>'.')and(fs.Name<>'..') then
+                  if (fs.Attr and faDirectory)=faDirectory then
+                    Result.Add(fs.Name);
+              end;
+          end;
+          Findclose(fs);
+        end;
+     4: begin     //搜索当前文件夹
+          //ChDir(path); //设置当前路径为搜索目录
+          //检查目录名后面是否有'\'
+          fpath:=CheckPathOK(path);
+        //  if Copy(path,Length(path),1)<>'\'then
+        //    sPath:=path+'\'
+        //  else
+        //    sPath:=path;
+
+          JPG := FindFirst(fpath+'*'+kname, faAnyFile, fs); //查找*.xxx
+          Result:=TStringList.Create;
+          while JPG = 0 do
+          begin
+            Inc(icount);
+            Result.Add(fs.Name);
+            JPG := FindNext(fs);
+          end;
+        end;
+  end;
+end;
+
+function ReFileName(const OldName,NewName,ty:pStr;idtype:Integer=0):pStr;cdecl;
+var
+  tmp,tpath:pStr;
+begin
+  result:='';
+  case idtype of
+  0:  begin
+        //把输入文件的扩展名改为指定的扩展名 ChangeFileExtName('d:\123.wmv','.wav') 返回为 d:\123.wav
+        {           //例如 c:\abc\def.gh
+        ExtractFileDir        函数        返回驱动器和路径    c:\abc
+        ExtractFileExt        函数        返回文件的后缀      .gh
+        ExtractFileName       函数        返回文件名          def.gh
+        ExtractFilePath       函数        返回指定文件的路径  c:\abc\
+        }
+        tmp:=ExtractFileExt(OldName);
+        result:=Copy(OldName,1,Pos(tmp,OldName)-1)+NewName;
+      end;
+  1:  begin
+        //newname:=StringReplace(newname, '.', '', [rfReplaceAll]); // 去掉.
+        if not FileExists(oldname) then
+        begin
+          Application.MessageBox('文件不存在!', '提示', MB_OK);
+          Exit;
+        end;
+        tmp:=ExtractFileExt(oldname);     //得到后缀名
+        tpath:= ExtractFilePath(oldname); //得到路径
+        Try
+          RenameFile(oldname,tpath+newname+tmp);
+          Exit;
+        except
+          Application.MessageBox('error!', '提示', MB_OK);
+        End;
+      end;
+  2:  begin
+        if ty='' then
+        begin
+          if not FileExists(oldname) then
+          begin
+            Application.MessageBox('文件不存在!', '提示', MB_OK);
+            Exit;
+          end;
+          Try
+            RenameFile(oldname,newname);
+            Exit;
+          except
+            Application.MessageBox('error!', '提示', MB_OK);
+          End;
+        end;
+
+        Try
+          CheckPathOK(Tpath);
+          if not FileExists(Tpath+oldname) then
+          begin
+            Application.MessageBox('文件不存在!', '提示', MB_OK);
+            Exit;
+          end;
+          RenameFile(Tpath+oldname,Tpath+newname);
+          Exit;
+        except
+          Application.MessageBox('error!', '提示', MB_OK);
+        End;
+      end;
+  end;
+end;
+
+function ExtractRes(ResType, ResName, ResNewName: string): boolean;cdecl;
+var
+  Res: TResourceStream;
+begin
+  try
+    Res := TResourceStream.Create(Hinstance, Resname, Pchar(ResType));
+    try
+      Res.SavetoFile(ResNewName);
+      Result := true;
+    finally
+      Res.Free;
+    end;
+  except
+    Result := false;
+  end;
+end;
 
 
 
 
+exports
+ReadINI                 {$IFDEF CDLE}name 'OxU00000001'{$ENDIF},
+RINIInt                 {$IFDEF CDLE}name 'OxU00000002'{$ENDIF},
+RINIBool                {$IFDEF CDLE}name 'OxU00000003'{$ENDIF},
+WriteINI                {$IFDEF CDLE}name 'OxU00000004'{$ENDIF},
+GetExePath              {$IFDEF CDLE}name 'OxU00000005'{$ENDIF},
+SaveText                {$IFDEF CDLE}name 'OxU00000006'{$ENDIF},
+StrToFile               {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+ReadFileToHex           {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+ReadFileToTen           {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+TextFileToStr           {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+FileToString            {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StreamToStr             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StreamGOStr             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StrToStream             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+ByteStreamF             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StreamToStrCPP          {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StrToStreamCPP          {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+QStr                    {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+GetAgoN                 {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+GetLastN                {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+GetNotAgoN              {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+GetNotLastN             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+RegExprType             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StrSimilar              {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+StringToChar            {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+CharToString            {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+CheckPathOK             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+DelPathDir              {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+DelPathDirEX            {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+GetDirFiles             {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+ReFileName              {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+ExtractRes              {$IFDEF CDLE}name 'OxU00000008'{$ENDIF};
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//exports
-//writeWorkLog    {$IFDEF CDLE}name 'OxU00000001'{$ENDIF},
-//SInputBox       {$IFDEF CDLE}name 'OxU00000002'{$ENDIF},
-//OpenDlg         {$IFDEF CDLE}name 'OxU00000003'{$ENDIF},
-//SaveDlg         {$IFDEF CDLE}name 'OxU00000004'{$ENDIF},
-//ShowBox         {$IFDEF CDLE}name 'OxU00000005'{$ENDIF},
-//ShowBoxNum      {$IFDEF CDLE}name 'OxU00000006'{$ENDIF},
-//EShowBox        {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
-//TShowBox        {$IFDEF CDLE}name 'OxU00000008'{$ENDIF};
 
 end.

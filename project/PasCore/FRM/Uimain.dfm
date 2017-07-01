@@ -1,9 +1,9 @@
-object Form1: TForm1
-  Left = 266
-  Top = 215
+object FormPas: TFormPas
+  Left = 230
+  Top = 285
   Width = 509
   Height = 545
-  Caption = 'Form1'
+  Caption = 'FormPas'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,10 +14,10 @@ object Form1: TForm1
   PixelsPerInch = 96
   TextHeight = 13
   object Button1: TButton
-    Left = 44
-    Top = 52
-    Width = 133
-    Height = 93
+    Left = 16
+    Top = 16
+    Width = 85
+    Height = 65
     Caption = 'Button1'
     TabOrder = 0
     OnClick = Button1Click

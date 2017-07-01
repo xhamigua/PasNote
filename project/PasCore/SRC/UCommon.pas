@@ -7,6 +7,9 @@ uses
 type
   pStr= String;
 
+
+//写日志
+function LogFun(str: pStr;const mfile:pStr='app.log'):Boolean;cdecl;
 //显示测试字符对话框
 procedure ShowBox(txt:pStr); cdecl;
 //显示测试数字对话框
@@ -21,11 +24,44 @@ function SInputBox(msg:string;var str1:string):Boolean;cdecl;
 function OpenDlg(strdefault:pStr):pStr;cdecl;
 //打开保存对话框 [初始路径,保存名,类型]
 function SaveDlg(sPath,sName,sType:pStr):pStr;cdecl;
-//写日志
-function writeWorkLog(sqlstr: pStr):Boolean;cdecl;
-  
+
+
 
 implementation
+
+function LogFun(str: pStr;const mfile:pStr='app.log'):Boolean;cdecl;
+  function GetSTR(stmp:TDateTime):pStr;
+  var
+    tmp:pStr;
+  begin
+    tmp:=DateToStr(stmp);
+    tmp:=StringReplace(tmp, '/', '', [rfReplaceAll]); // 去掉/
+    Result := StringReplace(tmp, '\', '', [rfReplaceAll]); // 去掉\
+  end;
+var
+  filev: TextFile;
+  ss: pStr;
+begin
+//  if closelog then Exit;
+  str:=DateTimeToStr(Now)+' Log: '+str;
+
+  DateToStr(now);
+  //ss:=ExtractFilePath(ParamStr(0))+'log\'+GetSTR(now)+'.Log';
+  ss:=ExtractFilePath(ParamStr(0))+'log\'+ mfile;
+  ForceDirectories(ExtractFilePath(ParamStr(0))+'log\');
+  if FileExists(ss) then
+  begin
+    AssignFile(filev, ss);
+    append(filev);
+    writeln(filev, str);
+  end else begin
+    AssignFile(filev, ss);
+    ReWrite(filev);
+    writeln(filev, str);
+  end;
+  CloseFile(filev);
+  Result := true;
+end;
 
 procedure ShowBox(txt:pStr);cdecl;
 begin
@@ -95,53 +131,19 @@ begin
   save1.Free;
 end;
 
-function writeWorkLog(sqlstr: pStr):Boolean;cdecl;
-  function GetSTR(stmp:TDateTime):pStr;
-  var
-    tmp:pStr;
-  begin
-    tmp:=DateToStr(stmp);
-    tmp:=StringReplace(tmp, '/', '', [rfReplaceAll]); // 去掉/
-    Result := StringReplace(tmp, '\', '', [rfReplaceAll]); // 去掉\
-  end;
-var
-  filev: TextFile;
-  ss: pStr;
-begin
-//  if closelog then Exit;
-  sqlstr:=DateTimeToStr(Now)+' Log: '+sqlstr;
-
-  DateToStr(now);
-  ss:=ExtractFilePath(ParamStr(0))+'log\'+GetSTR(now)+'.Log';
-  ForceDirectories(ExtractFilePath(ParamStr(0))+'log\');
-  if FileExists(ss) then
-  begin
-    AssignFile(filev, ss);
-    append(filev);
-    writeln(filev, sqlstr);
-  end else begin
-    AssignFile(filev, ss);
-    ReWrite(filev);
-    writeln(filev, sqlstr);
-  end;
-  CloseFile(filev);
-  Result := true;
-end;
-
-
 
 
 
 
 exports
-writeWorkLog    {$IFDEF CDLE}name 'OxU00000001'{$ENDIF},
-SInputBox       {$IFDEF CDLE}name 'OxU00000002'{$ENDIF},
-OpenDlg         {$IFDEF CDLE}name 'OxU00000003'{$ENDIF},
-SaveDlg         {$IFDEF CDLE}name 'OxU00000004'{$ENDIF},
-ShowBox         {$IFDEF CDLE}name 'OxU00000005'{$ENDIF},
-ShowBoxNum      {$IFDEF CDLE}name 'OxU00000006'{$ENDIF},
-EShowBox        {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
-TShowBox        {$IFDEF CDLE}name 'OxU00000008'{$ENDIF};
+LogFun          {$IFDEF CDLE}name 'OxU00000001'{$ENDIF},
+ShowBox         {$IFDEF CDLE}name 'OxU00000002'{$ENDIF},
+ShowBoxNum      {$IFDEF CDLE}name 'OxU00000003'{$ENDIF},
+EShowBox        {$IFDEF CDLE}name 'OxU00000004'{$ENDIF},
+TShowBox        {$IFDEF CDLE}name 'OxU00000005'{$ENDIF},
+SInputBox       {$IFDEF CDLE}name 'OxU00000006'{$ENDIF},
+OpenDlg         {$IFDEF CDLE}name 'OxU00000007'{$ENDIF},
+SaveDlg         {$IFDEF CDLE}name 'OxU00000008'{$ENDIF};
 
 
 end.

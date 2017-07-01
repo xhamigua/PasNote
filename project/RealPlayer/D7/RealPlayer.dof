@@ -134,9 +134,8 @@ Comments=
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=2
-Item0=./;../;../BPL;../SRC;../FRM;../res;../BPL/ffmpeg
-Item1=./;../;../BPL;../SRC;../FRM;../res
+Count=1
+Item0=./;../;../SRC;../FRM;../RES
 [HistoryLists\hlUnitOutputDirectory]
 Count=1
 Item0=../../../BIN/DCU

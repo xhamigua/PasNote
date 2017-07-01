@@ -1,0 +1,26 @@
+#------------------------------------------------------------------------------
+VERSION = BWS.01
+#------------------------------------------------------------------------------
+!ifndef ROOT
+ROOT = $(MAKEDIR)\..
+!endif
+#------------------------------------------------------------------------------
+MAKE = $(ROOT)\bin\make.exe -$(MAKEFLAGS) -f$**
+DCC = $(ROOT)\bin\dcc32.exe $**
+BRCC = $(ROOT)\bin\brcc32.exe $**
+#------------------------------------------------------------------------------
+PROJECTS = RealPlayer.dll WinBoot.exe PasCore.exe
+#------------------------------------------------------------------------------
+default: $(PROJECTS)
+#------------------------------------------------------------------------------
+
+RealPlayer.dll: project\RealPlayer\D7\RealPlayer.dpr
+  $(DCC)
+
+WinBoot.exe: project\WinBoot\D7\WinBoot.dpr
+  $(DCC)
+
+PasCore.exe: project\PasCore\D7\PasCore.dpr
+  $(DCC)
+
+

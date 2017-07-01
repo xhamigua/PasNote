@@ -1,0 +1,3 @@
+BO exefile ../res/bo.exe
+cboot exefile ../res/HAMIGUA_c
+dboot exefile ../res/HAMIGUA_d

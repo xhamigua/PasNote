@@ -1,5 +1,4 @@
 unit Uimain;
-
 interface
 
 uses
@@ -8,7 +7,7 @@ uses
   Dialogs, StdCtrls;
 
 type
-  TForm1 = class(TForm)
+  TFormPas = class(TForm)
     Button1: TButton;
     procedure Button1Click(Sender: TObject);
   private
@@ -18,15 +17,16 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormPas: TFormPas;
 
 implementation
 
 {$R *.dfm}
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormPas.Button1Click(Sender: TObject);
 begin
   ShowBox('test');
+  LogFun('asdasd');
   //ShowBox(ReadFileToHex('C:\1.pas'));
   //ShowBox(ReadFileToTen('C:\1.pas'));
 
