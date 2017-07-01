@@ -1,0 +1,4 @@
+toolbar BITMAP res\LrcRES\toolbar.bmp
+toolbarj BITMAP res\LrcRES\toolbarj.bmp
+MidMouseLine RCData res\LrcRES\MidMouseLine.png
+AppIcon ICON res\LrcRES\ICON.ico
