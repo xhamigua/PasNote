@@ -1,0 +1,14 @@
+//Í¼Æ¬×ÊÔ´
+//ImgPause jpgtype  .\PlayRES\ImgPause.jpg
+//ImgPlay jpgtype .\PlayRES\ImgPlay.jpg
+//ImgWav jpgtype .\PlayRES\ImgWav.jpg
+//ImgNoWav jpgtype .\PlayRES\ImgNoWav.jpg
+MAINICON ICON Icon.ico
+avcodec exefile .\resdll\avcodec.dll
+avformat exefile .\resdll\avformat.dll
+avfilter exefile .\resdll\avfilter.dll
+swscale exefile .\resdll\swscale.dll
+SDL exefile .\resdll\SDL.dll
+avutil exefile .\resdll\avutil.dll
+avdevice exefile .\resdll\avdevice.dll
+swresample exefile .\resdll\swresample.dll

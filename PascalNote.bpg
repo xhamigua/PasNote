@@ -9,10 +9,13 @@ MAKE = $(ROOT)\bin\make.exe -$(MAKEFLAGS) -f$**
 DCC = $(ROOT)\bin\dcc32.exe $**
 BRCC = $(ROOT)\bin\brcc32.exe $**
 #------------------------------------------------------------------------------
-PROJECTS = PasCore.exe
+PROJECTS = RealPlayer.dll PasCore.exe
 #------------------------------------------------------------------------------
 default: $(PROJECTS)
 #------------------------------------------------------------------------------
+
+RealPlayer.dll: project\RealPlayer\D7\RealPlayer.dpr
+  $(DCC)
 
 PasCore.exe: project\PasCore\D7\PasCore.dpr
   $(DCC)

@@ -13,7 +13,7 @@ uses
   UFile in '..\SRC\UFile.pas',
   UCommon in '..\SRC\UCommon.pas';
 
-{$R *.res}
+//{$R *.res}
 
 begin
   Application.Initialize;
