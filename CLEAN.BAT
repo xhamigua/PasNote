@@ -9,7 +9,7 @@ del *.hpp /s /q
 del *.xml /s /q
 del *.identcache /s /q
 del *.local /s /q
-del *.res /s 
+REM del *.res /s 
 REM del *.dof /s
 del *.log /s /q
 REM del bin\*.dll /s /q

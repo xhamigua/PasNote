@@ -1,7 +1,7 @@
 REM 编译资源文件
-Brcc32 frm/capture.Rc 
+C:\APP\Develop\Delphi7-Lite\Bin\Brcc32 frm/capture.Rc 
 @pause
-Brcc32 bpl/LrcRES.Rc 
-Brcc32 bpl/TrackRES.Rc 
-Brcc32 bpl/VolRes.Rc 
+C:\APP\Develop\Delphi7-Lite\Bin\Brcc32 bpl/LrcRES.Rc 
+C:\APP\Develop\Delphi7-Lite\Bin\Brcc32 bpl/TrackRES.Rc 
+C:\APP\Develop\Delphi7-Lite\Bin\Brcc32 bpl/VolRes.Rc 
 @pause
