@@ -1,18 +1,8 @@
-del *.dcu /s /q
-del *.~* /s /q
-del ~*.* /s /q
-del *.ddp /s /q
-del *~ /s /q
-del .\project\*obj /s /q
+@del /s /q /f /A  *.dcu *.log *.identcache *.local *.hpp *.xml *.~* ~*.* *.ddp *~ .\project\*obj 
+rd  -r -q __history\ out\
+md bin\dcu
 REM del *.cfg /s
-del *.hpp /s /q
-del *.xml /s /q
-del *.identcache /s /q
-del *.local /s /q
 REM del *.res /s 
 REM del *.dof /s
-del *.log /s /q
 REM del bin\*.dll /s /q
 REM del bin\*.exe /s /q
-rd __history\ -r -q
-rem rd out\ -r -q
